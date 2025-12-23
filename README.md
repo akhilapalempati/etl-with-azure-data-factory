@@ -32,3 +32,6 @@ A master pipeline orchestrates the full end-to-end flow.
 - Azure Data Lake Storage  
 - Mapping Data Flows  
 - ARM Templates (Infrastructure as Code)
+
+
+This project was developed as part of structured, hands-on learning focused on Azure Data Factory.
