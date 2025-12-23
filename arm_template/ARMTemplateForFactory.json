@@ -1,0 +1,2035 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "adf-udemy-orders-df"
+        },
+        "ls_blobst_orders_connectionString": {
+            "type": "secureString",
+            "metadata": "Secure string for 'connectionString' of 'ls_blobst_orders'"
+        },
+        "ls_dlgen2_orders_accountKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'accountKey' of 'ls_dlgen2_orders'"
+        },
+        "ls_dlgen2_orders_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://adfudemyordersgen2.dfs.core.windows.net/"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/df_orders_raw_to_cleansed')]",
+            "type": "Microsoft.DataFactory/factories/dataflows",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "MappingDataFlow",
+                "typeProperties": {
+                    "sources": [
+                        {
+                            "dataset": {
+                                "referenceName": "ds_raw_orders",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrdersRaw"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_raw_order_items",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrderItemsRaw"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_raw_customers",
+                                "type": "DatasetReference"
+                            },
+                            "name": "CustomersRaw"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_raw_stores",
+                                "type": "DatasetReference"
+                            },
+                            "name": "StoresRaw"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_raw_products",
+                                "type": "DatasetReference"
+                            },
+                            "name": "ProductsRaw"
+                        }
+                    ],
+                    "sinks": [
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_orders",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrdersCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_order_items",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrderItemsCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_customers",
+                                "type": "DatasetReference"
+                            },
+                            "name": "CustomersCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_stores",
+                                "type": "DatasetReference"
+                            },
+                            "name": "StoresCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_products",
+                                "type": "DatasetReference"
+                            },
+                            "name": "ProductsCleansed"
+                        }
+                    ],
+                    "transformations": [
+                        {
+                            "name": "OrderDateAndUpdatedTimeStamp"
+                        },
+                        {
+                            "name": "CastDataTypesOrders"
+                        },
+                        {
+                            "name": "DropOrderDatetimeAndReorder"
+                        },
+                        {
+                            "name": "AddUpdatedTimestampOrderItems"
+                        },
+                        {
+                            "name": "CastDataTypesOrderItems"
+                        },
+                        {
+                            "name": "DropLineItemId"
+                        },
+                        {
+                            "name": "AddUpdatedTimestampCustomers"
+                        },
+                        {
+                            "name": "CastDataTypesCustomers"
+                        },
+                        {
+                            "name": "ReorderColumnsCustomers"
+                        },
+                        {
+                            "name": "AddUpdatedTimestampStores"
+                        },
+                        {
+                            "name": "CastDataTypesStores"
+                        },
+                        {
+                            "name": "ReorderAndDropWebAddressStores"
+                        },
+                        {
+                            "name": "AddUpdatedTimestampProducts"
+                        },
+                        {
+                            "name": "CastDataTypesProducts"
+                        }
+                    ],
+                    "scriptLines": [
+                        "source(output(",
+                        "          ORDER_ID as string,",
+                        "          ORDER_DATETIME as string,",
+                        "          CUSTOMER_ID as string,",
+                        "          ORDER_STATUS as string,",
+                        "          STORE_ID as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> OrdersRaw",
+                        "source(output(",
+                        "          ORDER_ID as short,",
+                        "          LINE_ITEM_ID as short,",
+                        "          PRODUCT_ID as short,",
+                        "          UNIT_PRICE as double,",
+                        "          QUANTITY as short",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false) ~> OrderItemsRaw",
+                        "source(output(",
+                        "          CUSTOMER_ID as short,",
+                        "          EMAIL_ADDRESS as string,",
+                        "          FULL_NAME as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     documentForm: 'documentPerLine') ~> CustomersRaw",
+                        "source(output(",
+                        "          LATITUDE as double,",
+                        "          LONGITUDE as double,",
+                        "          STORE_ID as short,",
+                        "          STORE_NAME as string,",
+                        "          WEB_ADDRESS as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     documentForm: 'documentPerLine') ~> StoresRaw",
+                        "source(output(",
+                        "          PRODUCT_ID as short,",
+                        "          PRODUCT_NAME as string,",
+                        "          UNIT_PRICE as double",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     documentForm: 'documentPerLine') ~> ProductsRaw",
+                        "OrdersRaw derive(ORDER_DATE = toDate(ORDER_DATETIME, 'dd-MMM-yy HH.mm.ss.SS'),",
+                        "          UPDATED_TIMESTAMP = currentUTC()) ~> OrderDateAndUpdatedTimeStamp",
+                        "OrderDateAndUpdatedTimeStamp cast(output(",
+                        "          ORDER_ID as integer,",
+                        "          ORDER_DATETIME as string,",
+                        "          CUSTOMER_ID as integer,",
+                        "          ORDER_STATUS as string,",
+                        "          STORE_ID as integer,",
+                        "          ORDER_DATE as date,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     errors: true) ~> CastDataTypesOrders",
+                        "CastDataTypesOrders select(mapColumn(",
+                        "          ORDER_ID,",
+                        "          ORDER_DATE,",
+                        "          CUSTOMER_ID,",
+                        "          ORDER_STATUS,",
+                        "          STORE_ID,",
+                        "          UPDATED_TIMESTAMP",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> DropOrderDatetimeAndReorder",
+                        "OrderItemsRaw derive(UPDATED_TIMESTAMP = currentUTC()) ~> AddUpdatedTimestampOrderItems",
+                        "AddUpdatedTimestampOrderItems cast(output(",
+                        "          ORDER_ID as integer,",
+                        "          LINE_ITEM_ID as short,",
+                        "          PRODUCT_ID as integer,",
+                        "          UNIT_PRICE as double,",
+                        "          QUANTITY as integer,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     errors: true) ~> CastDataTypesOrderItems",
+                        "CastDataTypesOrderItems select(mapColumn(",
+                        "          ORDER_ID,",
+                        "          PRODUCT_ID,",
+                        "          UNIT_PRICE,",
+                        "          QUANTITY,",
+                        "          UPDATED_TIMESTAMP",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> DropLineItemId",
+                        "CustomersRaw derive(UPDATED_TIMESTAMP = currentUTC()) ~> AddUpdatedTimestampCustomers",
+                        "AddUpdatedTimestampCustomers cast(output(",
+                        "          CUSTOMER_ID as integer,",
+                        "          EMAIL_ADDRESS as string,",
+                        "          FULL_NAME as string,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     errors: true) ~> CastDataTypesCustomers",
+                        "CastDataTypesCustomers select(mapColumn(",
+                        "          CUSTOMER_ID,",
+                        "          FULL_NAME,",
+                        "          EMAIL_ADDRESS,",
+                        "          UPDATED_TIMESTAMP",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> ReorderColumnsCustomers",
+                        "StoresRaw derive(UPDATED_TIMESTAMP = currentUTC()) ~> AddUpdatedTimestampStores",
+                        "AddUpdatedTimestampStores cast(output(",
+                        "          LATITUDE as double,",
+                        "          LONGITUDE as double,",
+                        "          STORE_ID as integer,",
+                        "          STORE_NAME as string,",
+                        "          WEB_ADDRESS as string,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     errors: true) ~> CastDataTypesStores",
+                        "CastDataTypesStores select(mapColumn(",
+                        "          STORE_ID,",
+                        "          STORE_NAME,",
+                        "          LATITUDE,",
+                        "          LONGITUDE,",
+                        "          UPDATED_TIMESTAMP",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> ReorderAndDropWebAddressStores",
+                        "ProductsRaw derive(UPDATED_TIMESTAMP = currentUTC()) ~> AddUpdatedTimestampProducts",
+                        "AddUpdatedTimestampProducts cast(output(",
+                        "          PRODUCT_ID as integer,",
+                        "          PRODUCT_NAME as string,",
+                        "          UNIT_PRICE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     errors: true) ~> CastDataTypesProducts",
+                        "DropOrderDatetimeAndReorder sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     input(",
+                        "          ORDER_ID as integer,",
+                        "          ORDER_DATE as date,",
+                        "          CUSTOMER_ID as integer,",
+                        "          ORDER_STATUS as string,",
+                        "          STORE_ID as integer,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> OrdersCleansed",
+                        "DropLineItemId sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     input(",
+                        "          ORDER_ID as integer,",
+                        "          PRODUCT_ID as integer,",
+                        "          UNIT_PRICE as double,",
+                        "          QUANTITY as integer,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> OrderItemsCleansed",
+                        "ReorderColumnsCustomers sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     input(",
+                        "          ORDER_ID as integer,",
+                        "          ORDER_DATE as date,",
+                        "          CUSTOMER_ID as integer,",
+                        "          ORDER_STATUS as string,",
+                        "          STORE_ID as integer,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> CustomersCleansed",
+                        "ReorderAndDropWebAddressStores sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     input(",
+                        "          STORE_ID as integer,",
+                        "          STORE_NAME as string,",
+                        "          LATITUDE as double,",
+                        "          LONGITUDE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> StoresCleansed",
+                        "CastDataTypesProducts sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     input(",
+                        "          PRODUCT_ID as integer,",
+                        "          PRODUCT_NAME as string,",
+                        "          UNIT_PRICE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> ProductsCleansed"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_raw_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_order_items')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_customers')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_products')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_order_items')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_customers')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_products')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/df_orders_cleansed_to_structured')]",
+            "type": "Microsoft.DataFactory/factories/dataflows",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "MappingDataFlow",
+                "typeProperties": {
+                    "sources": [
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_orders",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrdersCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_order_items",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrderItemsCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_stores",
+                                "type": "DatasetReference"
+                            },
+                            "name": "StoresCleansed"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_cleansed_products",
+                                "type": "DatasetReference"
+                            },
+                            "name": "ProductsCleansed"
+                        }
+                    ],
+                    "sinks": [
+                        {
+                            "dataset": {
+                                "referenceName": "ds_structured_orders",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrdersStructured"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_structured_stores",
+                                "type": "DatasetReference"
+                            },
+                            "name": "StoresStructured"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_structured_products",
+                                "type": "DatasetReference"
+                            },
+                            "name": "ProductsStructured"
+                        }
+                    ],
+                    "transformations": [
+                        {
+                            "name": "OrdersOrderItemsJoin"
+                        },
+                        {
+                            "name": "DropDuplicateColumns"
+                        },
+                        {
+                            "name": "SubtotalAndUpdatedTimestampOrders"
+                        },
+                        {
+                            "name": "RearrangeColumnsOrder"
+                        },
+                        {
+                            "name": "UpdatedTimeStampStores"
+                        },
+                        {
+                            "name": "UpdatedTimeStampProducts"
+                        }
+                    ],
+                    "scriptLines": [
+                        "source(output(",
+                        "          ORDER_ID as integer,",
+                        "          ORDER_DATE as date,",
+                        "          CUSTOMER_ID as integer,",
+                        "          ORDER_STATUS as string,",
+                        "          STORE_ID as integer,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> OrdersCleansed",
+                        "source(output(",
+                        "          ORDER_ID as integer,",
+                        "          PRODUCT_ID as integer,",
+                        "          UNIT_PRICE as double,",
+                        "          QUANTITY as integer,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> OrderItemsCleansed",
+                        "source(output(",
+                        "          STORE_ID as integer,",
+                        "          STORE_NAME as string,",
+                        "          LATITUDE as double,",
+                        "          LONGITUDE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> StoresCleansed",
+                        "source(output(",
+                        "          PRODUCT_ID as integer,",
+                        "          PRODUCT_NAME as string,",
+                        "          UNIT_PRICE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> ProductsCleansed",
+                        "OrdersCleansed, OrderItemsCleansed join(OrdersCleansed@ORDER_ID == OrderItemsCleansed@ORDER_ID,",
+                        "     joinType:'left',",
+                        "     matchType:'exact',",
+                        "     ignoreSpaces: false,",
+                        "     broadcast: 'auto')~> OrdersOrderItemsJoin",
+                        "OrdersOrderItemsJoin select(mapColumn(",
+                        "          ORDER_ID = OrdersCleansed@ORDER_ID,",
+                        "          ORDER_DATE,",
+                        "          CUSTOMER_ID,",
+                        "          ORDER_STATUS,",
+                        "          STORE_ID,",
+                        "          PRODUCT_ID,",
+                        "          UNIT_PRICE,",
+                        "          QUANTITY,",
+                        "          UPDATED_TIMESTAMP = OrderItemsCleansed@UPDATED_TIMESTAMP",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> DropDuplicateColumns",
+                        "DropDuplicateColumns derive(SUBTOTAL = UNIT_PRICE*QUANTITY,",
+                        "          UPDATED_TIMESTAMP = currentUTC()) ~> SubtotalAndUpdatedTimestampOrders",
+                        "SubtotalAndUpdatedTimestampOrders select(mapColumn(",
+                        "          ORDER_ID,",
+                        "          ORDER_DATE,",
+                        "          CUSTOMER_ID,",
+                        "          ORDER_STATUS,",
+                        "          STORE_ID,",
+                        "          PRODUCT_ID,",
+                        "          UNIT_PRICE,",
+                        "          QUANTITY,",
+                        "          SUBTOTAL,",
+                        "          UPDATED_TIMESTAMP",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> RearrangeColumnsOrder",
+                        "StoresCleansed derive(UPDATED_TIMESTAMP = currentUTC()) ~> UpdatedTimeStampStores",
+                        "ProductsCleansed derive(UPDATED_TIMESTAMP = currentUTC()) ~> UpdatedTimeStampProducts",
+                        "RearrangeColumnsOrder sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> OrdersStructured",
+                        "UpdatedTimeStampStores sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> StoresStructured",
+                        "UpdatedTimeStampProducts sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     format: 'parquet',",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> ProductsStructured"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_order_items')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_cleansed_products')]",
+                "[concat(variables('factoryId'), '/datasets/ds_structured_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_structured_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_structured_products')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/df_orders_structured_to_analytics')]",
+            "type": "Microsoft.DataFactory/factories/dataflows",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "description": " ",
+                "type": "MappingDataFlow",
+                "typeProperties": {
+                    "sources": [
+                        {
+                            "dataset": {
+                                "referenceName": "ds_structured_products",
+                                "type": "DatasetReference"
+                            },
+                            "name": "ProductsStructured"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_structured_stores",
+                                "type": "DatasetReference"
+                            },
+                            "name": "StoresStructured"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_structured_orders",
+                                "type": "DatasetReference"
+                            },
+                            "name": "OrdersStructured"
+                        }
+                    ],
+                    "sinks": [
+                        {
+                            "dataset": {
+                                "referenceName": "ds_analytics_products_orders_monthly",
+                                "type": "DatasetReference"
+                            },
+                            "name": "ProductOrdersMonthlyAnalytics"
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "ds_analytics_stores_orders_monthly",
+                                "type": "DatasetReference"
+                            },
+                            "name": "StoresOrdersMonthlyAnalytics"
+                        }
+                    ],
+                    "transformations": [
+                        {
+                            "name": "ExcludeCancelled"
+                        },
+                        {
+                            "name": "MonthYear"
+                        },
+                        {
+                            "name": "JoinProductsOrders"
+                        },
+                        {
+                            "name": "GroupByProductDateStatus"
+                        },
+                        {
+                            "name": "JoinStoresOrders"
+                        },
+                        {
+                            "name": "GroupByStoresOrders"
+                        }
+                    ],
+                    "scriptLines": [
+                        "source(output(",
+                        "          PRODUCT_ID as integer,",
+                        "          PRODUCT_NAME as string,",
+                        "          UNIT_PRICE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> ProductsStructured",
+                        "source(output(",
+                        "          STORE_ID as integer,",
+                        "          STORE_NAME as string,",
+                        "          LATITUDE as double,",
+                        "          LONGITUDE as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> StoresStructured",
+                        "source(output(",
+                        "          ORDER_ID as integer,",
+                        "          ORDER_DATE as date,",
+                        "          CUSTOMER_ID as integer,",
+                        "          ORDER_STATUS as string,",
+                        "          STORE_ID as integer,",
+                        "          PRODUCT_ID as integer,",
+                        "          UNIT_PRICE as double,",
+                        "          QUANTITY as integer,",
+                        "          SUBTOTAL as double,",
+                        "          UPDATED_TIMESTAMP as timestamp",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'parquet') ~> OrdersStructured",
+                        "OrdersStructured filter(ORDER_STATUS != 'CANCELLED') ~> ExcludeCancelled",
+                        "ExcludeCancelled derive(MONTH_YEAR = toString(ORDER_DATE, 'MM-yyyy')) ~> MonthYear",
+                        "ProductsStructured, MonthYear join(ProductsStructured@PRODUCT_ID == OrdersStructured@PRODUCT_ID,",
+                        "     joinType:'inner',",
+                        "     matchType:'exact',",
+                        "     ignoreSpaces: false,",
+                        "     broadcast: 'auto')~> JoinProductsOrders",
+                        "JoinProductsOrders aggregate(groupBy(PRODUCT_NAME,",
+                        "          MONTH_YEAR,",
+                        "          ORDER_STATUS),",
+                        "     TOTAL_AMOUNT = round(sum(SUBTOTAL),2)) ~> GroupByProductDateStatus",
+                        "StoresStructured, MonthYear join(StoresStructured@STORE_ID == OrdersStructured@STORE_ID,",
+                        "     joinType:'inner',",
+                        "     matchType:'exact',",
+                        "     ignoreSpaces: false,",
+                        "     broadcast: 'auto')~> JoinStoresOrders",
+                        "JoinStoresOrders aggregate(groupBy(STORE_NAME,",
+                        "          LATITUDE,",
+                        "          LONGITUDE,",
+                        "          ORDER_STATUS,",
+                        "          MONTH_YEAR),",
+                        "     TOTAL_AMOUNT = round(sum(SUBTOTAL),2)) ~> GroupByStoresOrders",
+                        "GroupByProductDateStatus sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     partitionFileNames:['products_orders_monthly.csv'],",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true,",
+                        "     partitionBy('hash', 1)) ~> ProductOrdersMonthlyAnalytics",
+                        "GroupByStoresOrders sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     partitionFileNames:['stores_orders_monthly.csv'],",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true,",
+                        "     partitionBy('hash', 1)) ~> StoresOrdersMonthlyAnalytics"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_structured_products')]",
+                "[concat(variables('factoryId'), '/datasets/ds_structured_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_structured_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_analytics_products_orders_monthly')]",
+                "[concat(variables('factoryId'), '/datasets/ds_analytics_stores_orders_monthly')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/pl_orders_landing_to_raw')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "copy-orders-landing-to-raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.00:10:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "ParquetSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "ParquetReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "ParquetSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "ParquetWriteSettings"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ds_landing_orders",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ds_raw_orders",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "copy-stores-landing-to-raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.00:10:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "JsonSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "JsonReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "JsonSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "JsonWriteSettings"
+                                }
+                            },
+                            "enableStaging": false
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ds_landing_stores",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ds_raw_stores",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "copy-customers-landing-to-raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.00:10:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "JsonSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "JsonReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "JsonSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "JsonWriteSettings"
+                                }
+                            },
+                            "enableStaging": false
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ds_landing_customers",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ds_raw_customers",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "copy-order-items-landing-to-raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.00:10:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "DelimitedTextSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextWriteSettings",
+                                    "quoteAllText": true,
+                                    "fileExtension": ".txt"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ds_landing_order_items",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ds_raw_order_items",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "copy-products-landing-to-raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.00:10:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "JsonSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobStorageReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "JsonReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "JsonSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "JsonWriteSettings"
+                                }
+                            },
+                            "enableStaging": false
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ds_landing_products",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ds_raw_products",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-12-18T21:26:57Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_landing_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_orders')]",
+                "[concat(variables('factoryId'), '/datasets/ds_landing_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_stores')]",
+                "[concat(variables('factoryId'), '/datasets/ds_landing_customers')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_customers')]",
+                "[concat(variables('factoryId'), '/datasets/ds_landing_order_items')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_order_items')]",
+                "[concat(variables('factoryId'), '/datasets/ds_landing_products')]",
+                "[concat(variables('factoryId'), '/datasets/ds_raw_products')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/pl_orders_raw_to_cleansed')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Raw to Cleansed",
+                        "type": "ExecuteDataFlow",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "dataflow": {
+                                "referenceName": "df_orders_raw_to_cleansed",
+                                "type": "DataFlowReference",
+                                "parameters": {},
+                                "datasetParameters": {
+                                    "OrdersRaw": {},
+                                    "OrderItemsRaw": {},
+                                    "CustomersRaw": {},
+                                    "StoresRaw": {},
+                                    "ProductsRaw": {},
+                                    "OrdersCleansed": {},
+                                    "OrderItemsCleansed": {},
+                                    "CustomersCleansed": {},
+                                    "StoresCleansed": {},
+                                    "ProductsCleansed": {}
+                                }
+                            },
+                            "staging": {},
+                            "compute": {
+                                "coreCount": 8,
+                                "computeType": "General"
+                            },
+                            "traceLevel": "Fine"
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-12-20T14:42:49Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/dataflows/df_orders_raw_to_cleansed')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/pl_orders_cleansed_to_structured')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Cleansed to Structured",
+                        "type": "ExecuteDataFlow",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "dataflow": {
+                                "referenceName": "df_orders_cleansed_to_structured",
+                                "type": "DataFlowReference",
+                                "parameters": {},
+                                "datasetParameters": {
+                                    "OrdersCleansed": {},
+                                    "OrderItemsCleansed": {},
+                                    "StoresCleansed": {},
+                                    "ProductsCleansed": {},
+                                    "OrdersStructured": {},
+                                    "StoresStructured": {},
+                                    "ProductsStructured": {}
+                                }
+                            },
+                            "staging": {},
+                            "compute": {
+                                "coreCount": 8,
+                                "computeType": "General"
+                            },
+                            "traceLevel": "Fine"
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-12-20T14:42:49Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/dataflows/df_orders_cleansed_to_structured')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/pl_orders_structured_analytics')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Structured to Analytics",
+                        "type": "ExecuteDataFlow",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "dataflow": {
+                                "referenceName": "df_orders_structured_to_analytics",
+                                "type": "DataFlowReference",
+                                "parameters": {},
+                                "datasetParameters": {
+                                    "ProductsStructured": {},
+                                    "StoresStructured": {},
+                                    "OrdersStructured": {},
+                                    "ProductOrdersMonthlyAnalytics": {},
+                                    "StoresOrdersMonthlyAnalytics": {}
+                                }
+                            },
+                            "staging": {},
+                            "compute": {
+                                "coreCount": 8,
+                                "computeType": "General"
+                            },
+                            "traceLevel": "Fine"
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-12-20T14:42:49Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/dataflows/df_orders_structured_to_analytics')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/pl_execute_orders')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Landing to Raw",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "pl_orders_landing_to_raw",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {}
+                        }
+                    },
+                    {
+                        "name": "Raw to Cleansed",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "Landing to Raw",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "pl_orders_raw_to_cleansed",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {}
+                        }
+                    },
+                    {
+                        "name": "Cleansed to Structured",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "Raw to Cleansed",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "pl_orders_cleansed_to_structured",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {}
+                        }
+                    },
+                    {
+                        "name": "Structured to Analytics",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "Cleansed to Structured",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "pl_orders_structured_analytics",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {}
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2025-12-20T14:42:49Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/pl_orders_landing_to_raw')]",
+                "[concat(variables('factoryId'), '/pipelines/pl_orders_raw_to_cleansed')]",
+                "[concat(variables('factoryId'), '/pipelines/pl_orders_cleansed_to_structured')]",
+                "[concat(variables('factoryId'), '/pipelines/pl_orders_structured_analytics')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_order_items')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "order_items.txt",
+                        "fileSystem": "raw"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_order_items')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "order_items.txt",
+                        "container": "landing"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_customers')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "customers.json",
+                        "container": "landing"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_customers')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "customers.json",
+                        "fileSystem": "raw"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "orders.parquet",
+                        "fileSystem": "raw"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "orders.parquet",
+                        "container": "landing"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "ORDER_DATETIME",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "ORDER_STATUS",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "STORE_ID",
+                        "type": "UTF8"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "products.json",
+                        "container": "landing"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "stores.json",
+                        "fileSystem": "raw"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "products.json",
+                        "fileSystem": "raw"
+                    }
+                },
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "CUSTOMER_ID": {
+                            "type": "string"
+                        },
+                        "FULL_NAME": {
+                            "type": "string"
+                        },
+                        "EMAIL_ADDRESS": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "stores.json",
+                        "container": "landing"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_DATE",
+                        "type": "DATE"
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_STATUS",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "STORE_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_order_items')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders_items",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "PRODUCT_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UNIT_PRICE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "QUANTITY",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "products",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "PRODUCT_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "PRODUCT_NAME",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "UNIT_PRICE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_customers')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_DATE",
+                        "type": "DATE"
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_STATUS",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "STORE_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "stores",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "STORE_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "STORE_NAME",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "LATITUDE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "LONGITUDE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_structured_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "04 Structured"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders",
+                        "fileSystem": "structured"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_structured_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "04 Structured"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "stores",
+                        "fileSystem": "structured"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_structured_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "04 Structured"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "products",
+                        "fileSystem": "structured"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_analytics_products_orders_monthly')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "05 Analytics"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "products_orders_monthly.csv",
+                        "folderPath": "products_orders_monthly",
+                        "fileSystem": "analytics"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_analytics_stores_orders_monthly')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "05 Analytics"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "stores_orders_monthly.csv",
+                        "folderPath": "stores_orders_monthly",
+                        "fileSystem": "analytics"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_blobst_orders')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "connectionString": "[parameters('ls_blobst_orders_connectionString')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_dlgen2_orders')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobFS",
+                "typeProperties": {
+                    "url": "[parameters('ls_dlgen2_orders_properties_typeProperties_url')]",
+                    "accountKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('ls_dlgen2_orders_accountKey')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        }
+    ]
+}

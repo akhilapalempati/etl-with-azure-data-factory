@@ -1,0 +1,705 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "adf-udemy-orders-df"
+        },
+        "ls_blobst_orders_connectionString": {
+            "type": "secureString",
+            "metadata": "Secure string for 'connectionString' of 'ls_blobst_orders'"
+        },
+        "ls_dlgen2_orders_accountKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'accountKey' of 'ls_dlgen2_orders'"
+        },
+        "ls_dlgen2_orders_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://adfudemyordersgen2.dfs.core.windows.net/"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_blobst_orders')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "connectionString": "[parameters('ls_blobst_orders_connectionString')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_dlgen2_orders')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobFS",
+                "typeProperties": {
+                    "url": "[parameters('ls_dlgen2_orders_properties_typeProperties_url')]",
+                    "accountKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('ls_dlgen2_orders_accountKey')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_order_items')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "order_items.txt",
+                        "fileSystem": "raw"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_order_items')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "order_items.txt",
+                        "container": "landing"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_customers')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "customers.json",
+                        "container": "landing"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_customers')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "customers.json",
+                        "fileSystem": "raw"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "orders.parquet",
+                        "fileSystem": "raw"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "orders.parquet",
+                        "container": "landing"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "ORDER_DATETIME",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "ORDER_STATUS",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "STORE_ID",
+                        "type": "UTF8"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "products.json",
+                        "container": "landing"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "stores.json",
+                        "fileSystem": "raw"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_raw_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "02 Raw"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "products.json",
+                        "fileSystem": "raw"
+                    }
+                },
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "CUSTOMER_ID": {
+                            "type": "string"
+                        },
+                        "FULL_NAME": {
+                            "type": "string"
+                        },
+                        "EMAIL_ADDRESS": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blobst_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "01 Landing"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": "stores.json",
+                        "container": "landing"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blobst_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_DATE",
+                        "type": "DATE"
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_STATUS",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "STORE_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_order_items')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders_items",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "PRODUCT_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UNIT_PRICE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "QUANTITY",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "products",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "PRODUCT_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "PRODUCT_NAME",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "UNIT_PRICE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_customers')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "ORDER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_DATE",
+                        "type": "DATE"
+                    },
+                    {
+                        "name": "CUSTOMER_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "ORDER_STATUS",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "STORE_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_cleansed_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "03 Cleansed"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "stores",
+                        "fileSystem": "cleansed"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": [
+                    {
+                        "name": "STORE_ID",
+                        "type": "INT32"
+                    },
+                    {
+                        "name": "STORE_NAME",
+                        "type": "UTF8"
+                    },
+                    {
+                        "name": "LATITUDE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "LONGITUDE",
+                        "type": "DOUBLE"
+                    },
+                    {
+                        "name": "UPDATED_TIMESTAMP",
+                        "type": "INT96"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_structured_orders')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "04 Structured"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "orders",
+                        "fileSystem": "structured"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_structured_stores')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "04 Structured"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "stores",
+                        "fileSystem": "structured"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_structured_products')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_dlgen2_orders",
+                    "type": "LinkedServiceReference"
+                },
+                "folder": {
+                    "name": "04 Structured"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "products",
+                        "fileSystem": "structured"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_dlgen2_orders')]"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "adf-udemy-orders-df"
+        },
+        "ls_blobst_orders_connectionString": {
+            "value": ""
+        },
+        "ls_dlgen2_orders_accountKey": {
+            "value": ""
+        },
+        "ls_dlgen2_orders_properties_typeProperties_url": {
+            "value": "https://adfudemyordersgen2.dfs.core.windows.net/"
+        },
+        "containerUri": {
+            "value": ""
+        },
+        "containerSasToken": {
+            "value": ""
+        }
+    }
+}
